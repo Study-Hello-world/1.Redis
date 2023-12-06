@@ -1,0 +1,18 @@
+{
+  "name": "1.redis_basic",
+  "version": "1.0.0",
+  "description": "- Redis는 C언어로 만들어졌으며, Remote Dictionary Server의 약자입니다. - Key-Value 구조의 비정형 데이터를 저장하고 관리하기 위한 오픈 소스 기반의 In-Memory NoSQL 데이터베이스 시스템입니다. - RDMBS가 아닌 NoSQL에는 여러 종류의 NoSQL이 있는데 Redis는 In-Memory 기반의 Key-Value 스토리지입니다. - NoSQL의 한 종류이기 때문에 쿼리가 아닌 명령어라고 일컫습니다. - 디스크가 아닌 메모리 기반의 Key-Value Store입니다.   Key-Value Store라는 구조로 다양한 자료구조를 지원합니다. In memory라는 특성답게 고성능이며, 캐싱, 세션 관리, 메시지 큐 등으로 다양하게 활용되고 있습니다. Redis의 장점 중 하나는 Key-Value 스토리지에서 Value는 단순한 Object가 아니라 다양한 자료구조를 갖기 때문입니다. - 모든 데이터가 메모리에 저장되지만, 서버가 내려갔다가 올라가는 상황에서 메모리에 상주한 데이터들이 휘발되지 않도록 디스크에 스냅샷을 저장할 수 있습니다. - Key-Value 저장소 중 가장 인기가 많은 시스템입니다. - 이때 Value에 사용될 수 있는 데이터 타입들을 Collection이라고 일컫습니다. - Redis의 기본 Port는 6379번입니다.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^1.6.2",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "redis": "^4.6.11"
+  }
+}
