@@ -289,7 +289,7 @@ process.on('SIGINT', async () => {
 
 Redis의 이벤트 리스너들은 확인해 보았고 이제는 실제로 명령어(쿼리X)를 사용하여 Redis를 사용해 봅시다. 이번 글에서는 간단한 사용법 정도만 익히고, 실제로 Redis의 다양한 컬렉션을 활용해 보는 것은 다음 글에서 이어 나가도록 하겠습니다.
 
-이제부터 EC2 서버로 Redis 명령어를 날려줄, Redis 코드들은  데이터베이스를 사용해 보는 코드는 redisClient의 상태가 ready가 되고 나서 콜백 함수에 작성하도록 하겠습니다.
+이제부터 EC2 서버로 Redis 명령어를 날려, Redis DB를 사용할 코드들은 redisClient의 상태가 ready가 되고 나서 콜백 함수에 작성하도록 하겠습니다.
 
 ```jsx
 redisClient.on('ready', async() => {
