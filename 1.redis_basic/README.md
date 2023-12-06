@@ -175,3 +175,154 @@ Warning: Using a password with '-a' or '-u' option on the command line interface
 # -a라는 명령어를 통해 비밀번호를 입력하면서 접근할 수 있지만 
 # 명령 인터페이스에서 -a, -u를 이용해서 인증 정보를 사용하는 것은 안전하지 않을 수 있다고 알려줍니다!
 ```
+
+<br>
+
+
+# Redis With Node.js
+이번에는 간단하게 Node.js에서 Redis를 사용하는 방법에 대해서 알아보겠습니다.
+
+```bash
+npm init -y
+npm install express axios redis dotenv
+```
+
+<br>
+
+## .env
+구현하기 전 Redis와 관련된 설정값들을 .env에 저장해 놓도록 할게요.
+
+```
+REDIS_PORT=6379
+REDIS_HOST=[Redis가 설치된 EC2 IP]
+REDIS_PASSWORD=redis!1234
+```
+
+<br>
+
+## server.js
+
+간단하게 하나의 파일로 Redis 접근법에 대해서 알아보겠습니다. 시작하기 전에 아래 구조로 기본적인 뼈대 코드를 작성하려고 하는데요.
+
+- redis.createClient는 HOST, PORT, PASSWORD 정보 등을 통해 레디스 클라이언트 객체를 생성하는 역할을 하고,
+- redisClient.connect는 해당 클라이언트 정보로 커넥션을 시도하는 역할을 합니다.
+
+또한, redisClient에서 발생하는 이벤트에 대한 코드들도 작성했으며, 서버 종료 시 작업한 데이터를 삭제하기 위해 redisClient.flushAll()를 적용해 놓았습니다.
+
+```jsx
+const express = require("express")
+const redis = require("redis")
+const app = express()
+require("dotenv").config()
+
+app.use(express.urlencoded({extended: true}));
+app.use(express.json());
+
+const redisClient = redis.createClient({
+  socket: {
+    port: process.env.REDIS_PORT,
+    host: process.env.REDIS_HOST
+  },
+  password: process.env.REDIS_PASSWORD
+})
+
+redisClient.on("connect", async () => {
+  console.info("Redis 서버와 연결되었습니다.")
+})
+
+redisClient.on("error", (err) => {
+  console.error("Redis 클라이언트의 에러가 발생하였습니다.", err)
+})
+
+redisClient.on('reconnecting', (params) => {
+  console.log('Redis 서버와 재연결 중입니다.', params);
+});
+
+redisClient.on('end', () => {
+  console.log('Redis 클라이언트가 종료되었습니다.');
+});
+
+redisClient.on('ready', () => {
+  console.log('Redis 클라이언트의 명령 처리 준비 완료되었습니다.');
+});
+
+redisClient.on('warning', (warning) => {
+  console.warn('Redis 클라이언트 경고:', warning);
+});
+
+const server = app.listen("3000", () => {
+  console.log("server start 3000")
+  redisClient.connect()
+})
+
+process.on('exit', (code) => {
+  console.log(`서버가 다음 코드와 함께 종료되었습니다... -> ${code}`);
+});
+
+process.on('SIGINT', async () => {
+  console.log('서버가 SIGINT 신호를 수신하여 종료합니다...');
+
+  const allDelete = await redisClient.flushAll();
+  console.log("데이터 모두 삭제: ", allDelete)
+
+  const redisQuit = await redisClient.quit();
+  console.log("레디스 연결 종료: ", redisQuit)
+
+  server.close(() => {
+    console.log('서버 종료됨.');
+    process.exit(0);
+  });
+});
+```
+
+이 코드를 한번 실행시켜 보면, 아래와 같은 로그가 발생하게 됩니다.
+
+![Untitled](https://www.notion.so/image/https%3A%2F%2Fprod-files-secure.s3.us-west-2.amazonaws.com%2F9e5ac57e-3f7b-45d7-9b01-25d92e74c914%2F65ddf97d-cb4a-4fb5-bb8f-c1cdeae55b76%2FUntitled.png?table=block&id=de8bf105-9670-4042-b97e-96e9bef83da6&spaceId=9e5ac57e-3f7b-45d7-9b01-25d92e74c914&width=2000&userId=40ea3e7b-8bc8-403b-8d7d-5860174ef674&cache=v2)
+
+<br>
+
+또한, 서버를 종료하면 아래와 같은 메시지가 뜨게 됩니다.
+
+![Untitled](https://www.notion.so/image/https%3A%2F%2Fprod-files-secure.s3.us-west-2.amazonaws.com%2F9e5ac57e-3f7b-45d7-9b01-25d92e74c914%2Ff7831394-e5a7-4737-b1ef-8c9f545f7f7c%2FUntitled.png?table=block&id=3c8804fd-487b-405b-90bf-ea266be44704&spaceId=9e5ac57e-3f7b-45d7-9b01-25d92e74c914&width=2000&userId=40ea3e7b-8bc8-403b-8d7d-5860174ef674&cache=v2)
+
+<br>
+
+Redis의 이벤트 리스너들은 확인해 보았고 이제는 실제로 명령어(쿼리X)를 사용하여 Redis를 사용해 봅시다. 이번 글에서는 간단한 사용법 정도만 익히고, 실제로 Redis의 다양한 컬렉션을 활용해 보는 것은 다음 글에서 이어 나가도록 하겠습니다.
+
+이제부터 EC2 서버로 Redis 명령어를 날려줄, Redis 코드들은  데이터베이스를 사용해 보는 코드는 redisClient의 상태가 ready가 되고 나서 콜백 함수에 작성하도록 하겠습니다.
+
+```jsx
+redisClient.on('ready', async() => {
+  console.log('Redis 클라이언트의 명령 처리 준비 완료되었습니다.');
+	.
+	.
+	.
+	.
+});
+```
+
+<br>
+
+가상의 user 데이터를 가정하고 문자열(strings) 데이터를 저장 및 확인, 조회 및 확인해 볼까요?
+
+```jsx
+redisClient.on('ready', async() => {
+  console.log('Redis 클라이언트의 명령 처리 준비 완료되었습니다.');
+  const setUser = await redisClient.set("user:example-data:1", "john1234")
+  console.log(setUser)
+  const getUser = await redisClient.get("user:example-data:1")
+  console.log(getUser)
+});
+```
+
+console.log 결과가 아래처럼 찍혔습니다.
+
+![Untitled](https://www.notion.so/image/https%3A%2F%2Fprod-files-secure.s3.us-west-2.amazonaws.com%2F9e5ac57e-3f7b-45d7-9b01-25d92e74c914%2F0a395199-e44a-4089-a7fa-bee1148ba478%2FUntitled.png?table=block&id=fba800ad-4f17-43a7-b4c1-946f59988709&spaceId=9e5ac57e-3f7b-45d7-9b01-25d92e74c914&width=2000&userId=40ea3e7b-8bc8-403b-8d7d-5860174ef674&cache=v2)
+
+<br>
+
+또한 실제 EC2 Redis에서 확인해 보면 잘 저장된 것을 확인할 수 있습니다.
+
+![스크린샷 2023-12-06 오전 10.54.05.png](https://www.notion.so/image/https%3A%2F%2Fprod-files-secure.s3.us-west-2.amazonaws.com%2F9e5ac57e-3f7b-45d7-9b01-25d92e74c914%2F811b9134-4f9b-491e-81fe-61b6ac811058%2F%25E1%2584%2589%25E1%2585%25B3%25E1%2584%258F%25E1%2585%25B3%25E1%2584%2585%25E1%2585%25B5%25E1%2586%25AB%25E1%2584%2589%25E1%2585%25A3%25E1%2586%25BA_2023-12-06_%25E1%2584%258B%25E1%2585%25A9%25E1%2584%258C%25E1%2585%25A5%25E1%2586%25AB_10.54.05.png?table=block&id=cda5ba7a-3f1a-4045-bed5-05526139c322&spaceId=9e5ac57e-3f7b-45d7-9b01-25d92e74c914&width=2000&userId=40ea3e7b-8bc8-403b-8d7d-5860174ef674&cache=v2)
+
+이 글은 간단한 사용법만을 알아보았으며, 전체적인 컬렉션 확인법은 다음 글에서 기술하도록 하겠습니다.
